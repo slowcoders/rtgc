@@ -1,0 +1,101 @@
+#!/bin/bash
+set -e
+
+DIR="$(dirname "$0")"
+echo $DIR
+
+if [ "$6" == "" ]; then
+    echo 'gc-test: Invalid arguments'
+    echo 'usage) gc-test PLATFORM MEM_SIZE_GIGA PAYLOAD PRIMITIVE_BYTES CIRCULAR_REF% REPLACE%'
+    echo '   ex) sudo ./gc-test all  8 2000 512 5 50'
+    echo '       sudo ./gc-test rtgc 8 2000 512 5 50'
+    echo '       sudo ./gc-test java 8 8000 512 5 50'
+    echo         
+    exit -1
+fi
+
+function get_docker_image {
+    img_java="mcr.microsoft.com/vscode/devcontainers/java:0-11"
+    img_rtgc="mcr.microsoft.com/vscode/devcontainers/cpp:0-buster"
+    img_cpp="mcr.microsoft.com/vscode/devcontainers/cpp:0-buster"
+    img_dotnet="mcr.microsoft.com/vscode/devcontainers/dotnetcore:0-3.1"
+    img_go="mcr.microsoft.com/vscode/devcontainers/go:0-1.16"
+    echo $(eval echo "\$img_$1")
+}
+
+function execute_test {
+    DOCKER_IMG=$(get_docker_image $PLATFORM) 
+
+    if [ "$DOCKER_IMG" == "" ]; then
+        pushd $PLATFORM
+        echo "<< run gc-test in local OS >>"
+        echo
+        /bin/bash ./build_and_run.sh $*
+        popd
+        exit
+    fi
+
+    if [ "$1" != "sh" ]; then
+        ARGS="build_and_run.sh $*"
+    else 
+        echo "loadig docker shell"
+    fi
+
+    echo
+    echo        
+
+    docker run -it \
+        -v `pwd`/$DIR/..:/rtgc \
+        -m ${MEM_SIZE_K}k \
+        -w /rtgc/benchmark/$PLATFORM \
+        -e GC_TEST_MEM_SIZE \
+        -e DOTNET_GC_SERVER \
+        --memory-swappiness 0 \
+        $DOCKER_IMG bash $ARGS
+}
+
+function execute_all_test {
+    mkdir -p $DIR/test-results
+    F_NAME=$DIR/test-results/${MEM_GIGA}G-$1K-$2-$3-$4-$5
+    LOG_F=$F_NAME.log
+    RES_F=$F_NAME.csv
+
+    echo "gc-test-all $*" > $LOG_F
+    PLATFORM=cpp;    execute_test $* | tee -a $LOG_F
+    PLATFORM=rtgc;   execute_test $* | tee -a $LOG_F
+    PLATFORM=java;   execute_test $* | tee -a $LOG_F
+    PLATFORM=dotnet; execute_test $* true | tee -a $LOG_F
+    PLATFORM=dotnet; execute_test $* false | tee -a $LOG_F
+    
+    echo "GCTest 
+    memory size: ${MEM_GIGA}G 
+    base load: $1 x 1024 nodes 
+    primitive bytes per node: $2 bytes 
+    circular reference percent: $3 
+    replace percent: $4
+    " > $RES_F
+
+    grep "#\[" $LOG_F >> $RES_F
+
+    echo =================================================
+    echo "All gc-test\'s are finished."
+    echo "Test results are saved into $RES_F"
+    cat $RES_F
+    echo =================================================
+
+}
+
+PLATFORM=$1
+MEM_GIGA=$2
+shift 2
+# the size of docker memory 
+let MEM_SIZE_K=$MEM_GIGA*1024*1024
+export GC_TEST_MEM_SIZE=$MEM_SIZE_K
+
+if [ "$PLATFORM" == "all" ]; then
+    execute_all_test $* 
+else   
+    execute_test $*
+fi
+
+

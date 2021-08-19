@@ -1,0 +1,9 @@
+{
+    "runtimeOptions": {
+       "configProperties": {
+         "System.GC.Concurrent": false,
+         "System.GC.HeapHardLimitPercent": 85,
+         "System.GC.Server": true
+       }
+    }
+ }

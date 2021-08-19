@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "gctest": {
+      "commandName": "Project",
+      "commandLineArgs": "300 100"
+    }
+  }
+}

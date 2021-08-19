@@ -1,0 +1,23 @@
+obj/GCNode.o: ../../src/GCNode.cpp ../../src/GCNode.hpp ../../src/GCUtils.hpp \
+ ../../src/GCPointer.hpp
+obj/GCObject.o: ../../src/GCObject.cpp ../../src/GCNode.hpp \
+ ../../src/GCUtils.hpp ../../src/GCPointer.hpp
+obj/GCRuntime.o: ../../src/GCRuntime.cpp ../../src/GCNode.hpp \
+ ../../src/GCUtils.hpp ../../src/GCPointer.hpp
+obj/CircuitDetector.o: ../../src/CircuitDetector.cpp ../../src/GCNode.hpp \
+ ../../src/GCUtils.hpp ../../src/GCPointer.hpp
+obj/CircuitScanner.o: ../../src/CircuitScanner.cpp ../../src/GCNode.hpp \
+ ../../src/GCUtils.hpp ../../src/GCPointer.hpp
+obj/GCTest.o: src/GCTest.cpp src/GCTest.hpp ../../src/GCNode.hpp \
+ ../../src/GCUtils.hpp ../../src/GCPointer.hpp
+obj/StressTest.o: src/StressTest.cpp src/GCTest.hpp ../../src/GCNode.hpp \
+ ../../src/GCUtils.hpp ../../src/GCPointer.hpp \
+ inc/preprocess/BeginFields.hpp src/StressTest_Node.hpp \
+ inc/preprocess/EndDefine.hpp inc/preprocess/BeginScanInfo.hpp \
+ inc/preprocess/BeginStatic.hpp
+obj/CircuitTest.o: src/CircuitTest.cpp src/GCTest.hpp ../../src/GCNode.hpp \
+ ../../src/GCUtils.hpp ../../src/GCPointer.hpp \
+ inc/preprocess/BeginFields.hpp src/CircuitTest_Node.hpp \
+ inc/preprocess/EndDefine.hpp inc/preprocess/BeginScanInfo.hpp \
+ inc/preprocess/BeginStatic.hpp
+obj/MiscTest.o: src/MiscTest.cpp

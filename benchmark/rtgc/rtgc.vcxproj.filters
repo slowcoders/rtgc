@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\src\CircuitDetector.cpp">
+      <Filter>rtgc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\CircuitScanner.cpp">
+      <Filter>rtgc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\GCNode.cpp">
+      <Filter>rtgc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\GCObject.cpp">
+      <Filter>rtgc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\GCRuntime.cpp">
+      <Filter>rtgc</Filter>
+    </ClCompile>
+    <ClCompile Include="src\CircuitTest.cpp">
+      <Filter>test-src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\GCTest.cpp">
+      <Filter>test-src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MiscTest.cpp">
+      <Filter>test-src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\StressTest.cpp">
+      <Filter>test-src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\GCNode.hpp">
+      <Filter>rtgc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\GCPointer.hpp">
+      <Filter>rtgc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\GCUtils.hpp">
+      <Filter>rtgc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\CircuitTest_Node.hpp">
+      <Filter>test-src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GCTest.hpp">
+      <Filter>test-src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\StressTest_Node.hpp">
+      <Filter>test-src</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="rtgc">
+      <UniqueIdentifier>{96d33a9b-9d28-4a73-b026-dd3f34683089}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="test-src">
+      <UniqueIdentifier>{4a34cb89-c2b9-4078-afbe-c8c688e561a1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

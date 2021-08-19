@@ -1,0 +1,85 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Main",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/gctest.out",
+            "args": ["2000", "512", "10", "10", "100"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "Build Main"
+        },
+        {
+            "name": "Launch Debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/gctest.out",
+            "args": ["2000", "512", "10", "10", "100"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "Build Debug"
+        },
+        {
+            "name": "Circuit Test",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/gctest.out",
+            "args": ["circuit"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "Build Debug"
+        },
+        {
+            "name": "C++ (no go) Test",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/gctest.out",
+            "args": ["2000", "512", "10", "10", "100"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "Build Main"
+        }
+    ]
+}
