@@ -8,6 +8,9 @@ SERVER_MODE=$5
 if [ "$SERVER_MODE" == "" ]; then
     SERVER_MODE=true
 fi
+if [ "$GC_TEST_MEM_SIZE" == "" ]; then
+    GC_TEST_MEM_SIZE=8388608 
+fi
 let MAX_HEAP=($GC_TEST_MEM_SIZE-384*1024)*1024
 cat <<EOF > runtimeconfig.template.json
 {

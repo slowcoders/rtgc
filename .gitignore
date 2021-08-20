@@ -31,3 +31,4 @@ benchmark/dotnet/bin
 main.out
 rtgc/obj
 benchmark/dotnet5/obj
+benchmark/dotnet5/bin
