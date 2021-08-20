@@ -30,3 +30,4 @@ benchmark/objc/gctest.xcodeproj/xcuserdata
 benchmark/dotnet/bin
 main.out
 rtgc/obj
+benchmark/dotnet5/obj
