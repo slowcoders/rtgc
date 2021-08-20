@@ -54,7 +54,6 @@ Testable platforms: cpp rtgc java dotnet go
 ## Test conditions and effects
 |                  |  RTGC    |  Tracing Algorithm |
 |:----------------:|:--------:|:--------:|
-| Memory Size      | Nothing | GC execution frequency | 
 | Primitive bytes  | Nothing | GC execution frequency |
 | Circular ref%    | Circuit data manipulation | Nothing |
 | Replace%         | Nothing | generational GC algorithm effciency |

@@ -7,7 +7,7 @@ LDFLAGS=-g # -pthread
 LDLIBS=
 
 RTGC_SRCS=../../src/GCNode.cpp ../../src/GCObject.cpp ../../src/GCRuntime.cpp ../../src/CircuitDetector.cpp ../../src/CircuitScanner.cpp
-TEST_SRCS=src/GCTest.cpp src/StressTest.cpp src/CircuitTest.cpp src/MiscTest.cpp
+TEST_SRCS=src/GCTest.cpp src/StressTest.cpp src/CircuitTest.cpp
 RTGC_OBJS=$(subst .cpp,.o,$(RTGC_SRCS))
 TEST_OBJS=$(subst .cpp,.o,$(TEST_SRCS))
 OBJS=$(subst ../../src/,obj/,$(RTGC_OBJS)) $(subst src/,obj/,$(TEST_OBJS))
