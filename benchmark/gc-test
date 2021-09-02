@@ -65,6 +65,7 @@ function execute_all_test {
     PLATFORM=cpp;    execute_test $* | tee -a $LOG_F
     PLATFORM=rtgc;   execute_test $* | tee -a $LOG_F
     PLATFORM=java;   execute_test $* | tee -a $LOG_F
+    PLATFORM=go;     execute_test $* | tee -a $LOG_F
     PLATFORM=dotnet; execute_test $* true | tee -a $LOG_F
     PLATFORM=dotnet; execute_test $* false | tee -a $LOG_F
     

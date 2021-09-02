@@ -16,7 +16,7 @@ OBJS=$(subst ../../src/,obj/,$(RTGC_OBJS)) $(subst src/,obj/,$(TEST_OBJS))
 
 all: main
 
-DEBUG: CPPFLAGS=-g -std=c++14 -Igc -DDEBUG -DGC_DEBUG 
+DEBUG: CPPFLAGS=-g -std=c++14 -I../../src -Iinc -DDEBUG -DGC_DEBUG 
 DEBUG: main
 
 obj:

@@ -18,7 +18,7 @@ Set docker memory >= 8G
 ./gc-test all MEM_SIZE PAYLOAD PRIMITIVE_BYTES CIRCULAR_REF% REPLACE%
 - MEM_SIZE : Heap memory size / Giga. (It must be less or equal to docker memory.)
 - PAYLOAD : Minimum number of stress test nodes / 1024
-- PRIMITIVE_BYTES : Primitive data size per node
+- PRIMITIVE_BYTES : Primitive data size per node include text and images
 - CIRCULAR_REF% : Percentage of cirularly referenced nodes
 - REPLACE% : Percentage of replaceable nodes
 ```

@@ -179,7 +179,7 @@ func main() {
 	options.circularRefPercent, _ = strconv.Atoi(os.Args[3])
 	options.replacePercent, _ = strconv.Atoi(os.Args[4])
 
-	g_testTitle = "[" + runtime.Version() + "]"
+	g_testTitle = "[" + runtime.Version() + "/GOGC=" + os.Getenv("GOGC") + "]"
 
 	fmt.Println(g_testTitle + " StressTest")
 	fmt.Println(" - Base payload: " + strconv.Itoa(options.basePayload) + "k nodes")

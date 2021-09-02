@@ -201,6 +201,7 @@ void GarbageProcessor::publishInstance(GCObject* obj) {
 void* GCArray::alloc_internal(int length, int item_size) {
     int size = length * item_size;
     if (size > 200 * 1024) {
+        // max-allocation size in 32bit-pointer : 256M bytes.
         void* ptr = rtgc_malloc(200 * 1024);
         void* ptr2 = rtgc_realloc(ptr, size);
         assert(ptr == ptr2);
