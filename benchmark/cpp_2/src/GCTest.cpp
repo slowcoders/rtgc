@@ -16,7 +16,7 @@ void show_list(ReferrerList* list) {
         ShortOOP oop = iter.next();
         printf("%d) %d\n", idx++, *(int32_t*)&oop);
     }
-    printf("==================");
+    printf("==================\n");
 }
 
 int main(int argc, const char* args[]) {
