@@ -1,0 +1,2 @@
+obj/GCTest.o: src/GCTest.cpp src/GCTest.hpp
+obj/StressTest.o: src/StressTest.cpp src/GCTest.hpp
