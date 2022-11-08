@@ -33,3 +33,4 @@ rtgc/obj
 benchmark/dotnet5/obj
 benchmark/dotnet5/bin
 benchmark/cpp-2/obj
+benchmark/cpp_2/obj

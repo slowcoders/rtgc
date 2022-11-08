@@ -9,7 +9,7 @@
                 "kind": "build",
                 "isDefault": true
             }
-        }
+        },
         {
             "label": "Build Debug",
             "type": "shell",

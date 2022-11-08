@@ -18,6 +18,8 @@ function get_docker_image {
     img_java="mcr.microsoft.com/vscode/devcontainers/java:0-11"
     img_rtgc="mcr.microsoft.com/vscode/devcontainers/cpp:0-buster"
     img_cpp="mcr.microsoft.com/vscode/devcontainers/cpp:0-buster"
+    img_cpp_2="mcr.microsoft.com/vscode/devcontainers/cpp:0-buster"
+    #img_cpp_2="mcr.microsoft.com/vscode/devcontainers/cpp:0-ubuntu-22.04"
     img_dotnet="mcr.microsoft.com/vscode/devcontainers/dotnetcore:0-3.1"
     img_dotnet5="mcr.microsoft.com/vscode/devcontainers/dotnetcore:0-5.0"
     img_go="mcr.microsoft.com/vscode/devcontainers/go:0-1.16"

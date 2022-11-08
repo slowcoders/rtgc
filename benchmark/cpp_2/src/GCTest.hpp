@@ -14,7 +14,7 @@ static inline uint32_t _pointer2offset(GCObject* ptr) {
 }
 
 static inline GCObject* _offset2Pointer(uint32_t ofs) {
-    return (GCObject*)(ofs << 3);
+    return (GCObject*)((uintptr_t)ofs << 3);
 }
 
 class ShortOOP {
@@ -41,19 +41,13 @@ class NodeChunk {
 public:
 	ShortOOP _items[MAX_COUNT_IN_CHUNK];
 	int32_t _next_offset;
-    NodeChunk() {}
 };
 
 static const int CHUNK_MASK = (sizeof(NodeChunk) - 1);
 
-
 class ReferrerList : private NodeChunk {
 
-    static ShortOOP* allocate_tail(NodeChunk* last_chunk) {
-        NodeChunk* tail = new NodeChunk();
-        tail->_next_offset = last_chunk->_items - &tail->_items[MAX_COUNT_IN_CHUNK];
-        return &tail->_items[MAX_COUNT_IN_CHUNK-1];
-    }
+    static ShortOOP* allocate_tail(NodeChunk* last_chunk);
 
     NodeChunk* get_prev_chunk(NodeChunk* chunk) {
         NodeChunk* prev = (NodeChunk*)(&chunk->_items[MAX_COUNT_IN_CHUNK] + chunk->_next_offset);
@@ -85,8 +79,9 @@ class ReferrerList : private NodeChunk {
     }
 
 public:
-    ReferrerList() {
 
+    void init() {
+        this->_next_offset = -MAX_COUNT_IN_CHUNK;
     }
 
     ShortOOP* firstItemPtr() {
@@ -102,11 +97,11 @@ public:
     }
 
     bool hasSingleItem() {
-        return _next_offset == -(MAX_COUNT_IN_CHUNK-1);
+        return _next_offset == -(MAX_COUNT_IN_CHUNK);
     }
 
     bool hasSingleChunk() {
-        return _next_offset < 0 && _next_offset > -MAX_COUNT_IN_CHUNK
+        return _next_offset < 0 && _next_offset > -MAX_COUNT_IN_CHUNK;
     }
 
     ShortOOP first() {
@@ -142,19 +137,9 @@ public:
 
     // return true: first item removed;
     bool remove(ShortOOP item);
-     {
-        NodeIterator iter<false>(this);
-        for (ShortOOP* ptr; (ptr = iter.next()) != NULL;) {
-            if (*ptr == item) {
-                *ptr = cut_last_tail();
-                return ptr == this->_items;
-            }
-        }
-        return false;
-    }
 
     int approximated_count() {
-        int count = last_item_adr() - this->_items[-1];
+        int count = lastItemPtr() - firstItemPtr();
         if (count < 0) {
             return -count;
         }
@@ -239,6 +224,13 @@ inline bool ReferrerList::remove(ShortOOP item) {
     return false;
 }
 
+static const int MEM_BUCKET_SIZE = 64 * 1024;
+
+struct VirtualMemory {
+    static void* reserve_memory(size_t bytes);
+    static void  commit_memory(void* mem, void* bucket, size_t bytes);
+    static void  free(void* mem, size_t bytes);
+};
 
 
 template <class T, size_t MAX_BUCKET, int indexOffset, int clearOffset>
@@ -304,7 +296,7 @@ public:
     }
 
     T* getPointer(int idx) {
-        assert(_items + idx < _next, "invalid idx: %d (max=%ld)\n", idx, _next - _items);
+        precond(_items + idx < _next);//, "invalid idx: %d (max=%ld)\n", idx, _next - _items);
         T* ptr = _items + idx;
         return ptr;
     }
@@ -322,5 +314,14 @@ public:
     }
 };
 
+typedef MemoryPool<NodeChunk, 64*1024*1024, 0, -1> AnchorListPool;
+extern AnchorListPool g_anchorListPool;
+
+inline ShortOOP* ReferrerList::allocate_tail(NodeChunk* last_chunk) {
+    NodeChunk* tail = g_anchorListPool.allocate();
+    precond(((uintptr_t)tail & CHUNK_MASK) == 0);
+    tail->_next_offset = last_chunk->_items - &tail->_items[MAX_COUNT_IN_CHUNK];
+    return &tail->_items[MAX_COUNT_IN_CHUNK-1];
+}
 
 }
