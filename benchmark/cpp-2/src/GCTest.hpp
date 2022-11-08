@@ -239,4 +239,88 @@ inline bool ReferrerList::remove(ShortOOP item) {
     return false;
 }
 
+
+
+template <class T, size_t MAX_BUCKET, int indexOffset, int clearOffset>
+class MemoryPool {
+    T* _items;
+    T* _free;
+    T* _next;
+    void* _end;
+    #if GC_DEBUG
+    int _cntFree;
+    #endif
+
+
+    T*& NextFree(void* ptr) {
+        return *(T**)ptr;
+    }
+
+public:
+    void initialize() {
+        _end = _next = (T*)VirtualMemory::reserve_memory(MAX_BUCKET*MEM_BUCKET_SIZE);
+        _items = _next - indexOffset;
+        _free = nullptr;
+        #if GC_DEBUG
+        _cntFree = 0;
+        #endif
+    }
+
+    #if GC_DEBUG
+    int getAllocatedItemCount() {
+        return _next - _items - _cntFree - indexOffset;
+    }
+    #endif
+
+    T* allocate() {
+        T* ptr;
+        if (_free == nullptr) {
+            ptr = _next ++;
+            if (_next >= _end) {
+                VirtualMemory::commit_memory(_items, _end, MEM_BUCKET_SIZE);
+                _end = (char*)_end + MEM_BUCKET_SIZE;
+            }
+        }
+        else {
+            ptr = _free;
+            #if GC_DEBUG
+            _cntFree --;
+            #endif
+            _free = NextFree(ptr);
+            if (clearOffset >= 0) {
+                memset((char*)ptr + clearOffset, 0, sizeof(T) - clearOffset);
+            }
+        }
+        return ptr;
+    }
+
+    void delete_(T* ptr) {
+        ptr->~T();
+        #if GC_DEBUG
+        _cntFree ++;
+        #endif
+        NextFree(ptr) = _free;
+        _free = ptr;
+    }
+
+    T* getPointer(int idx) {
+        assert(_items + idx < _next, "invalid idx: %d (max=%ld)\n", idx, _next - _items);
+        T* ptr = _items + idx;
+        return ptr;
+    }
+
+    int size() {
+        return _next - _items;
+    }
+
+    int getIndex(void* ptr) {
+        return (int)((T*)ptr - _items);
+    }
+
+    bool isInside(void* mem) {
+        return mem >= _items && mem < _items + MAX_BUCKET;
+    }
+};
+
+
 }
