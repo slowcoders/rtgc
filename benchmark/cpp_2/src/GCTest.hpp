@@ -8,222 +8,6 @@ namespace RTGC {
 #define postcond    assert
 
 class GCObject;
-
-static inline uint32_t _pointer2offset(GCObject* ptr) {
-    return (uint32_t)((uintptr_t)ptr >> 3);
-}
-
-static inline GCObject* _offset2Pointer(uint32_t ofs) {
-    return (GCObject*)((uintptr_t)ofs << 3);
-}
-
-class ShortOOP {
-    uint32_t _ofs;
-public:
-    ShortOOP(GCObject* ptr) {
-        precond(ptr != NULL);
-        _ofs = _pointer2offset(ptr);
-        postcond(_ofs != 0);
-    }
-
-    operator GCObject* () const {
-        return (GCObject*)_offset2Pointer(_ofs);
-    }
-
-    GCObject* operator -> () const {
-        return (GCObject*)_offset2Pointer(_ofs);
-    }
-};
-
-static const int MAX_COUNT_IN_CHUNK = 7;
-
-class NodeChunk {
-public:
-	ShortOOP _items[MAX_COUNT_IN_CHUNK];
-	int32_t _next_offset;
-};
-
-static const int CHUNK_MASK = (sizeof(NodeChunk) - 1);
-
-class ReferrerList : private NodeChunk {
-
-    static ShortOOP* allocate_tail(NodeChunk* last_chunk);
-
-    NodeChunk* get_prev_chunk(NodeChunk* chunk) {
-        NodeChunk* prev = (NodeChunk*)(&chunk->_items[MAX_COUNT_IN_CHUNK] + chunk->_next_offset);
-        precond(chunk == this || ((uintptr_t)prev & CHUNK_MASK) == 0);
-        return prev;
-    }
-
-    void set_last_item_ptr(ShortOOP* pLast) {
-        this->_next_offset = pLast - &this->_items[MAX_COUNT_IN_CHUNK];
-    }
-
-    ShortOOP cut_last_tail() {
-        ShortOOP* pLast = lastItemPtr();
-        ShortOOP last_v = *pLast;
-        NodeChunk* last_chunk = (NodeChunk*)((uintptr_t)pLast & ~CHUNK_MASK);
-        if (last_chunk == this) {
-            _next_offset --;
-        } else if (pLast - last_chunk->_items > MAX_COUNT_IN_CHUNK - 1) {
-            last_chunk = get_prev_chunk(last_chunk);
-            if (last_chunk == this) {
-                set_last_item_ptr(&this->_items[MAX_COUNT_IN_CHUNK - 6]);
-            } else {
-                set_last_item_ptr(&last_chunk->_items[0]);
-            }
-        } else {
-            _next_offset ++;
-        }
-        return last_v;
-    }
-
-public:
-
-    void init() {
-        this->_next_offset = -MAX_COUNT_IN_CHUNK;
-    }
-
-    ShortOOP* firstItemPtr() {
-        return &_items[0];
-    }
-
-    ShortOOP* lastItemPtr() {
-        return &_items[MAX_COUNT_IN_CHUNK] + _next_offset;
-    }
-
-    bool empty() {
-        return _next_offset == -MAX_COUNT_IN_CHUNK;
-    }
-
-    bool hasSingleItem() {
-        return _next_offset == -(MAX_COUNT_IN_CHUNK);
-    }
-
-    bool hasSingleChunk() {
-        return _next_offset < 0 && _next_offset > -MAX_COUNT_IN_CHUNK;
-    }
-
-    ShortOOP first() {
-        return _items[0];
-    }
-
-    void setFirst(ShortOOP first) {
-        _items[0] = first;
-    }
-
-    void add(ShortOOP item) {
-        ShortOOP* pLast = lastItemPtr();
-        NodeChunk* last_chunk = (NodeChunk*)((uintptr_t)pLast & ~CHUNK_MASK);
-        if (last_chunk == this) {
-            if (pLast == &this->_items[MAX_COUNT_IN_CHUNK - 1]) {
-                pLast = allocate_tail(last_chunk);
-                *pLast = item;
-            } else {
-                pLast[+1] = item;
-                this->_next_offset ++;
-            }
-        } else {
-            if (((uintptr_t)pLast % sizeof(NodeChunk)) == 0) {
-                pLast = allocate_tail(last_chunk);
-                set_last_item_ptr(pLast);
-            } else {
-                pLast --;
-                this->_next_offset --;
-            }
-            *pLast = item;
-        }
-    }
-
-    // return true: first item removed;
-    bool remove(ShortOOP item);
-
-    int approximated_count() {
-        int count = lastItemPtr() - firstItemPtr();
-        if (count < 0) {
-            return -count;
-        }
-    }
-};
-
-
-template <bool from_tail>
-class NodeIterator {
-    static ShortOOP g_end_of_node;
-public:
-    GCObject* _prev;
-    ShortOOP* _current;
-    ShortOOP* _end;
-
-    void initEmpty() {
-        _current = NULL;
-    }
-
-    void initVectorIterator(ReferrerList* vector) {
-        if (vector->hasSingleChunk()) {
-            _current = vector->firstItemPtr();
-            _end = vector->lastItemPtr() + 1;
-        }
-        else {
-            if (from_tail) {
-                _current = vector->lastItemPtr();
-            } else {
-                _current = vector->firstItemPtr();
-            }
-            _end = _current;
-        }
-    } 
-
-    void initSingleIterator(ShortOOP* temp) {
-        _current = temp;
-        _end = temp + 1;
-    }
-
-    bool hasNext() {
-        return (_current != NULL);
-    }
-
-    GCObject* peekPrev() {
-        return _prev;
-    }
-
-    GCObject* next_obj() {
-        this->_prev = next();
-        return this->_prev;
-    }
-
-    ShortOOP& next() {
-        precond(hasNext());
-        ShortOOP& oop = *_current++;
-        if (_current == _end) {
-            _current = NULL;
-        }
-        else if (((uintptr_t)_current & CHUNK_MASK) == sizeof(NodeChunk) - sizeof(int32_t)) {
-            int offset = *(int32_t*)_current;
-            _current = _current + offset;
-            if (_current == _end) {
-                _current = NULL;
-            }
-        }
-        return oop;
-    }
-};
-
-
-inline bool ReferrerList::remove(ShortOOP item) {
-    NodeIterator<false> iter;
-    iter.initVectorIterator(this);
-    
-    while (iter.hasNext()) {
-        ShortOOP& ptr = iter.next();
-        if (ptr == item) {
-            ptr = cut_last_tail();
-            return &ptr == this->_items;
-        }
-    }
-    return false;
-}
-
 static const int MEM_BUCKET_SIZE = 64 * 1024;
 
 struct VirtualMemory {
@@ -314,14 +98,251 @@ public:
     }
 };
 
-typedef MemoryPool<NodeChunk, 64*1024*1024, 0, -1> AnchorListPool;
-extern AnchorListPool g_anchorListPool;
 
-inline ShortOOP* ReferrerList::allocate_tail(NodeChunk* last_chunk) {
-    NodeChunk* tail = g_anchorListPool.allocate();
-    precond(((uintptr_t)tail & CHUNK_MASK) == 0);
-    tail->_next_offset = last_chunk->_items - &tail->_items[MAX_COUNT_IN_CHUNK];
-    return &tail->_items[MAX_COUNT_IN_CHUNK-1];
+
+static inline uint32_t _pointer2offset(GCObject* ptr) {
+    return (uint32_t)((uintptr_t)ptr >> 3);
 }
+
+static inline GCObject* _offset2Pointer(uint32_t ofs) {
+    return (GCObject*)((uintptr_t)ofs << 3);
+}
+
+class ShortOOP {
+    uint32_t _ofs;
+public:
+    ShortOOP(GCObject* ptr) {
+        precond(ptr != NULL);
+        _ofs = _pointer2offset(ptr);
+        postcond(_ofs != 0);
+    }
+
+    operator GCObject* () const {
+        return (GCObject*)_offset2Pointer(_ofs);
+    }
+
+    GCObject* operator -> () const {
+        return (GCObject*)_offset2Pointer(_ofs);
+    }
+};
+
+
+class ReferrerList {
+    friend class ReverseIterator;    
+
+    static const int MAX_COUNT_IN_CHUNK = 7;
+    struct Chunk {
+        ShortOOP _items[MAX_COUNT_IN_CHUNK];
+        int32_t _last_item_offset;
+    };
+    static const int CHUNK_MASK = (sizeof(Chunk) - 1);
+
+    Chunk _head;
+
+public:
+    void init() {
+        _head._last_item_offset = -MAX_COUNT_IN_CHUNK;
+    }
+
+    void init(ShortOOP first, GCObject* second) {
+        _head._items[0] = first;
+        _head._items[1] = second;
+        _head._last_item_offset = -(MAX_COUNT_IN_CHUNK - 1);
+    }
+
+    ShortOOP* firstItemPtr() {
+        return &_head._items[0];
+    }
+
+    ShortOOP* lastItemPtr() {
+        return &_head._items[MAX_COUNT_IN_CHUNK] + _head._last_item_offset;
+    }
+
+    bool empty() {
+        return _head._last_item_offset == -(MAX_COUNT_IN_CHUNK+1);
+    }
+
+    bool hasSingleItem() {
+        return _head._last_item_offset == -(MAX_COUNT_IN_CHUNK);
+    }
+
+    bool isTooSmall() {
+        uint32_t offset = (uint32_t)_head._last_item_offset + MAX_COUNT_IN_CHUNK + 1;
+        return offset < 2;
+    }
+
+    bool hasMultiChunk() {
+        return (uint32_t)_head._last_item_offset < (uint32_t)(-MAX_COUNT_IN_CHUNK);
+    }
+
+    ShortOOP front() {
+        return _head._items[0];
+    }
+
+    void replaceFirst(ShortOOP first);
+
+    void push_back(ShortOOP item) {
+        add(item);
+    }
+
+    void add(ShortOOP item);
+
+    bool contains(ShortOOP item) {
+        return getItemPtr(item) != NULL;
+    }
+
+    // returns removed item pointer (the memory may not accessable);
+    const void* remove(ShortOOP item);
+
+    const void* removeMatchedItems(ShortOOP item);
+
+    ShortOOP* getItemPtr(ShortOOP item);
+
+    int approximated_item_count() {
+        int count = lastItemPtr() - firstItemPtr();
+        if (count < 0) {
+            count = -count;
+        }
+        return count;
+    }
+
+    ShortOOP* getLastItemOffsetPtr() {
+        return &_head._items[MAX_COUNT_IN_CHUNK];
+    }    
+
+    static void validateChunktemPtr(ShortOOP*& ptr) {
+        if (((uintptr_t)ptr & CHUNK_MASK) == sizeof(Chunk) - sizeof(int32_t)) {
+            ptr = ptr + *(int32_t*)ptr;
+        }
+    }
+
+    static void initialize() {
+        g_chunkPool.initialize();
+    }
+
+    static ReferrerList* allocate() {
+        return (ReferrerList*)g_chunkPool.allocate();
+    }
+
+    static int getIndex(ReferrerList* referrers) {
+        return g_chunkPool.getIndex(&referrers->_head);
+    }
+
+    static ReferrerList* getPointer(uint32_t idx) {
+        return (ReferrerList*)g_chunkPool.getPointer(idx);
+    }
+
+    static void delete_(ReferrerList* referrers) {
+        g_chunkPool.delete_(&referrers->_head);
+    }
+
+    #if GC_DEBUG
+    static int getAllocatedItemCount() {
+        return g_chunkPool.getAllocatedItemCount();
+    }
+    #endif
+
+private:
+    typedef MemoryPool<Chunk, 64*1024*1024, 1, -1> ChunkPool;
+    
+    static  ChunkPool g_chunkPool;
+
+    ShortOOP* extend_tail(Chunk* last_chunk);
+
+    Chunk* dealloc_chunk(Chunk* chunk);
+
+    void set_last_item_ptr(ShortOOP* pLast) {
+        _head._last_item_offset = pLast - &_head._items[MAX_COUNT_IN_CHUNK];
+    }
+
+    void cut_tail_end(ShortOOP* copy_to);
+};
+
+template <bool trace_reverse>
+class NodeIterator {
+protected:    
+    ShortOOP* _ptr;
+    ShortOOP* _end;
+
+public:
+    NodeIterator() {}
+
+    NodeIterator(GCObject* obj);
+
+    void initEmpty() {
+        _ptr = _end = NULL;
+    }
+
+    void initIterator(ReferrerList* vector) {
+        precond(!vector->empty());
+        if (!vector->hasMultiChunk()) {
+            _ptr = vector->firstItemPtr();
+            _end = vector->lastItemPtr() + 1;
+            postcond(_ptr != _end);
+        } else if (trace_reverse) {
+            _ptr = vector->lastItemPtr();
+            _end = vector->getLastItemOffsetPtr();
+            postcond(_ptr != _end);
+        } else {
+            _ptr = vector->firstItemPtr();
+            _end = _ptr;
+        }
+    } 
+
+    void initSingleIterator(ShortOOP* temp) {
+        _ptr = temp;
+        _end = temp + 1;
+    }
+
+    bool hasNext() {
+        return _ptr != (trace_reverse ? _end : NULL);
+    }
+
+    ShortOOP& next() {
+        precond(hasNext());
+        ShortOOP& oop = *_ptr ++;
+        if (_ptr != _end) {
+            ReferrerList::validateChunktemPtr(_ptr);
+            if (!trace_reverse && _ptr == _end) {
+                _ptr = NULL;
+            } 
+        } else if (!trace_reverse) {
+            _ptr = NULL;
+        }
+        return oop;
+    }
+};
+
+class ReverseIterator : public NodeIterator<true> {
+public:     
+    ReverseIterator(ReferrerList* list) {
+        initIterator(list);
+    }
+};
+
+class AnchorIterator : public NodeIterator<false> {
+    GCObject* _current;
+public:    
+    AnchorIterator(GCObject* obj) {
+        initialize(obj);
+    }
+
+    void initialize(GCObject* obj);
+
+    GCObject* peekPrev() {
+        return _current;
+    }
+
+    GCObject* next_obj() {
+        this->_current = next();
+        return this->_current;
+    }
+
+    ShortOOP& next() {
+        this->_current = *_ptr;
+        return NodeIterator<false>::next();
+    }
+};
+
 
 }

@@ -2,7 +2,129 @@
 #include <stdio.h>
 
 using namespace RTGC;
-RTGC::AnchorListPool RTGC::g_anchorListPool;
+
+ReferrerList::ChunkPool ReferrerList::g_chunkPool;
+
+ShortOOP* ReferrerList::extend_tail(Chunk* last_chunk) {
+    Chunk* tail = g_chunkPool.allocate();
+    precond(((uintptr_t)tail & CHUNK_MASK) == 0);
+    tail->_last_item_offset = last_chunk->_items - &tail->_items[MAX_COUNT_IN_CHUNK];
+    return &tail->_items[MAX_COUNT_IN_CHUNK-1];
+}
+
+
+ReferrerList::Chunk* ReferrerList::dealloc_chunk(Chunk* chunk) {
+    //rtgc_log(true, "dealloc_chunk %p\n", this);
+    Chunk* prev = (Chunk*)(&chunk->_items[MAX_COUNT_IN_CHUNK] + chunk->_last_item_offset);
+    precond(((uintptr_t)prev & CHUNK_MASK) == 0);
+    g_chunkPool.delete_(chunk);
+    return prev;
+}
+
+
+void ReferrerList::cut_tail_end(ShortOOP* copy_to) {
+    ShortOOP* pLast = lastItemPtr();
+    if (copy_to != NULL) {
+        *copy_to = *pLast;
+    }
+    Chunk* last_chunk = (Chunk*)((uintptr_t)pLast & ~CHUNK_MASK);
+    if (last_chunk == &_head) {
+        _head._last_item_offset --;
+    } else if (pLast - last_chunk->_items == MAX_COUNT_IN_CHUNK - 1) {
+        last_chunk = dealloc_chunk(last_chunk);
+        if (last_chunk == &_head) {
+            _head._last_item_offset = -1;
+        } else {
+            set_last_item_ptr(&last_chunk->_items[0]);
+        }
+    } else {
+        _head._last_item_offset ++;
+    }
+}
+
+void ReferrerList::add(ShortOOP item) {
+    ShortOOP* pLast = lastItemPtr();
+    Chunk* last_chunk = (Chunk*)((uintptr_t)pLast & ~CHUNK_MASK);
+    if (last_chunk == &_head) {
+        if (pLast == &_head._items[MAX_COUNT_IN_CHUNK - 1]) {
+            pLast = extend_tail(last_chunk);
+            set_last_item_ptr(pLast);
+        } else {
+            pLast++;
+            _head._last_item_offset ++;
+        }
+    } else {
+        if (((uintptr_t)pLast % sizeof(Chunk)) == 0) {
+            pLast = extend_tail(last_chunk);
+            set_last_item_ptr(pLast);
+        } else {
+            pLast --;
+            _head._last_item_offset --;
+        }
+    }
+    *pLast = item;
+}
+
+static ShortOOP* __getItemPtr(ReverseIterator& iter, ShortOOP item) {
+    while (iter.hasNext()) {
+        ShortOOP& ptr = iter.next();
+        if (ptr == item) {
+            return &ptr;
+        }
+    }
+    return NULL;
+}
+
+ShortOOP* ReferrerList::getItemPtr(ShortOOP item) {
+    ReverseIterator iter(this);
+    return __getItemPtr(iter, item);
+}
+
+void ReferrerList::replaceFirst(ShortOOP new_first) {
+    ShortOOP old_first = this->front();
+    if (old_first != new_first) {
+        ShortOOP* pItem = getItemPtr(new_first);
+        assert(pItem != NULL);
+        *firstItemPtr() = new_first;
+        *pItem = old_first;
+    }
+}
+
+const void* ReferrerList::remove(ShortOOP item) {
+    ShortOOP* pItem = getItemPtr(item);
+    if (pItem != NULL) {
+        cut_tail_end(pItem);
+        return pItem;
+    }
+    return NULL;
+}
+
+const void* ReferrerList::removeMatchedItems(ShortOOP item) {
+    ReverseIterator iter(this);
+    const void* last_removed = NULL;
+    while (true) {
+        ShortOOP* pItem = __getItemPtr(iter, item);
+        if (pItem == NULL) break;
+        cut_tail_end(pItem);
+        if (last_removed != this->_head._items) {
+            last_removed = pItem;
+        }
+    }
+    return last_removed;
+}
+
+void AnchorIterator::initialize(GCObject* obj) {
+    // if (!obj->isAnchored()) {
+    //     this->initEmpty();
+    // }
+    // else if (!obj->hasMultiRef()) {
+    //     this->initSingleIterator((ShortOOP*)(void*)&obj->_refs);
+    // }
+    // else {
+    //     ReferrerList* referrers = obj->getReferrerList();
+    //     this->initIterator(referrers);
+    // }
+}
 
 ShortOOP _oop(int ptr) {
     return *(ShortOOP*)&ptr;
@@ -11,7 +133,7 @@ ShortOOP _oop(int ptr) {
 void show_list(ReferrerList* list) {
     int idx = 0;
     NodeIterator<false> iter;
-    iter.initVectorIterator(list);
+    iter.initIterator(list);
     for (; iter.hasNext(); ) {
         ShortOOP oop = iter.next();
         printf("%d) %d\n", idx++, *(int32_t*)&oop);
@@ -22,11 +144,16 @@ void show_list(ReferrerList* list) {
 int main(int argc, const char* args[]) {
     precond(sizeof(ShortOOP) == 4);
     precond(sizeof(ReferrerList) == 32);
-    g_anchorListPool.initialize();
-    ReferrerList* list = (ReferrerList*)g_anchorListPool.allocate();
+    ReferrerList::initialize();
+    ReferrerList* list = ReferrerList::allocate();
     list->init();
-    for (int i = 1; i < 4; i ++) {
+    for (int i = 1; i < 17; i ++) {
         list->add(_oop(i));
+        show_list(list);
+    }
+
+    for (int i = 1; i < 16; i ++) {
+        list->remove(_oop(i));
         show_list(list);
     }
 }
