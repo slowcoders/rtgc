@@ -27,7 +27,7 @@ obj/%.o: src/%.cpp
 
 .depend: $(RTGC_SRCS) $(TEST_SRCS)
 	$(CXX) $(CPPFLAGS) -MM $^ > ./.depend;
-	sed -Ei 's/(.*)\.o: /obj\/\1\.o: /' $@
+# 	sed -Ei 's/(.*)\.o: /obj\/\1\.o: /' $@
 
 clean:
 	$(RM) ./.depend
